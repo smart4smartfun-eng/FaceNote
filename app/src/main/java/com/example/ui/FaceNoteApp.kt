@@ -145,6 +145,7 @@ fun FaceNoteApp(viewModel: FriendViewModel) {
         }
     ) { innerPadding ->
         var activeTabMode by remember { mutableStateOf(0) } // 0 = Mobile App, 1 = Web Site Simulator
+        var mobilePlatformState by remember { mutableStateOf("android") } // "android" or "ios"
         
         // Web Site Simulator States
         var browserUrlInput by remember { mutableStateOf("https://facenote.org/") }
@@ -237,13 +238,62 @@ fun FaceNoteApp(viewModel: FriendViewModel) {
             }
 
             if (activeTabMode == 0) {
-                LazyColumn(
+                // Platform Switcher
+                Row(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .weight(1f),
-                    contentPadding = PaddingValues(bottom = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .background(Color(0xFFCBD5E1).copy(alpha = 0.5f), shape = RoundedCornerShape(12.dp))
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    val isAndroid = mobilePlatformState == "android"
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (isAndroid) Color.White else Color.Transparent)
+                            .clickable { mobilePlatformState = "android" }
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🤖 Android (Material 3)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isAndroid) FaceNoteBlue else FaceNoteGray
+                        )
+                    }
+
+                    val isIos = mobilePlatformState == "ios"
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (isIos) Color.White else Color.Transparent)
+                            .clickable { mobilePlatformState = "ios" }
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🍎 iOS (Cupertino Style)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isIos) Color(0xFF007AFF) else FaceNoteGray
+                        )
+                    }
+                }
+
+                if (mobilePlatformState == "android") {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        contentPadding = PaddingValues(bottom = 32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
             // HERO SECTION
             item {
                 Spacer(modifier = Modifier.height(24.dp))
@@ -734,6 +784,39 @@ fun FaceNoteApp(viewModel: FriendViewModel) {
                 }
             }
         }
+    } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        contentAlignment = Alignment.TopCenter
+                    ) {
+                        AppleDeviceSimulator(
+                            currentUser = currentUser,
+                            profiles = profiles,
+                            memories = memories,
+                            totalEarnings = totalEarnings,
+                            earningLogs = earningLogs,
+                            searchQuery = searchQuery,
+                            onSearchChanged = { viewModel.updateSearchQuery(it) },
+                            onSearchClicked = { viewModel.triggerSearchReward() },
+                            onJoinClicked = { viewModel.setShowRegisterModal(true) },
+                            onLogoutClicked = { viewModel.logout() },
+                            onProfileSelected = { viewModel.selectProfile(it) },
+                            onCashOutClicked = { showCashOutDialog = true },
+                            onSponsorAdClicked = {
+                                if (currentUser == null) {
+                                    viewModel.setShowRegisterModal(true)
+                                    Toast.makeText(context, "Register to sponsor buddies!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    showLaunchAdDialog = true
+                                }
+                            },
+                            onPostMemoryClicked = { showPostMemoryDialog = true }
+                        )
+                    }
+                }
     } else {
             // Interactive Desktop Web platform layout representation
                 FaceNoteWebPortal(
@@ -2842,3 +2925,671 @@ ${memoriesSnippet}
 </body>
 </html>"""
 }
+
+@Composable
+fun AppleDeviceSimulator(
+    currentUser: CurrentUser?,
+    profiles: List<FriendProfile>,
+    memories: List<HometownMemory>,
+    totalEarnings: Double,
+    earningLogs: List<String>,
+    searchQuery: String,
+    onSearchChanged: (String) -> Unit,
+    onSearchClicked: () -> Unit,
+    onJoinClicked: () -> Unit,
+    onLogoutClicked: () -> Unit,
+    onProfileSelected: (FriendProfile) -> Unit,
+    onCashOutClicked: () -> Unit,
+    onSponsorAdClicked: () -> Unit,
+    onPostMemoryClicked: () -> Unit
+) {
+    val context = LocalContext.current
+    val niceAvatarColors = listOf(
+        Color(0xFF007AFF), // iOS System Blue
+        Color(0xFF34C759), // iOS System Green
+        Color(0xFFAF52DE), // iOS System Purple
+        Color(0xFFFF9500), // iOS System Orange
+        Color(0xFFFF2D55), // iOS System Pink
+        Color(0xFF5856D6)  // iOS System Indigo
+    )
+
+    // iOS Device Outer Shell Frame
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 420.dp)
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(40.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)), // Deep luxury border
+        border = BorderStroke(4.dp, Color(0xFF2C2C2E)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFF2F2F7)) // Standard iOS light grey grouped background
+                .padding(vertical = 4.dp, horizontal = 4.dp)
+        ) {
+            // iOS Top Bezel: Clock, Dynamic Island, Indicators
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp, horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Time
+                Text(
+                    text = "9:41",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif
+                )
+
+                // Dynamic Island cutout
+                Box(
+                    modifier = Modifier
+                        .size(width = 96.dp, height = 22.dp)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Small lens reflex reflection
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF1B2E3C))
+                        )
+                    }
+                }
+
+                // Status Indicators: Wifi, Signal, Battery
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Cell signal bars
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(1.5.dp),
+                        verticalAlignment = Alignment.Bottom,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    ) {
+                        Box(modifier = Modifier.size(width = 2.dp, height = 4.dp).background(Color.Black))
+                        Box(modifier = Modifier.size(width = 2.dp, height = 6.dp).background(Color.Black))
+                        Box(modifier = Modifier.size(width = 2.dp, height = 8.dp).background(Color.Black))
+                        Box(modifier = Modifier.size(width = 2.dp, height = 10.dp).background(Color.Black))
+                    }
+
+                    // WiFi symbol indicator
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .background(Color.Transparent),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("📶", fontSize = 9.sp, color = Color.Black)
+                    }
+
+                    // iOS Style Battery
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(width = 20.dp, height = 10.dp)
+                                .border(1.dp, Color.Black, shape = RoundedCornerShape(2.dp))
+                                .padding(1.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth(0.9f)
+                                    .background(Color(0xFF34C759), shape = RoundedCornerShape(1.dp))
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(width = 1.5.dp, height = 4.dp)
+                                .background(Color.Black, shape = RoundedCornerShape(1.dp))
+                        )
+                    }
+                }
+            }
+
+            // iOS Header Web/App Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White.copy(alpha = 0.94f))
+                    .border(BorderStroke(0.5.dp, Color(0xFFD1D1D6)))
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Left Title or Logo
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0xFF007AFF)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("f", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "FaceNote",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
+
+                // Right Profile Status
+                if (currentUser != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = currentUser.name.substringBefore(" "),
+                            color = Color(0xFF007AFF),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
+                        )
+                        Text(
+                            text = "Log Out",
+                            color = Color(0xFFFF3B30),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.clickable { onLogoutClicked() }
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "Sign In",
+                        color = Color(0xFF007AFF),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.clickable { onJoinClicked() }
+                    )
+                }
+            }
+
+            // Inner Simulator Content
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(580.dp)
+                    .background(Color(0xFFF2F2F7)),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                // iOS Welcome Banner
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = " DESIGNED FOR IOS",
+                            color = Color(0xFF8E8E93),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Classmates & Friends Portal",
+                            color = Color.Black,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 22.sp,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Find high school pals, neighborhood buddies, and childhood connections on the premium iOS experience.",
+                            color = Color(0xFF8E8E93),
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+
+                // Cupertino Ticker widget
+                item {
+                    val formattedEarnings = String.format(java.util.Locale.US, "$%.2f", totalEarnings)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = "iOS Revenue",
+                                        tint = Color(0xFFFFCC00),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Active Ad-Revenue Share",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black
+                                    )
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(5.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF34C759))
+                                    )
+                                    Text(
+                                        text = "iOS HIGH-RATE ACTIVE",
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF34C759)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Text(
+                                text = "Your Reconnection Fund Balance",
+                                fontSize = 11.sp,
+                                color = Color(0xFF8E8E93)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = formattedEarnings,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF34C759)
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Apple outline button row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = { onCashOutClicked() },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF).copy(alpha = 0.1f)),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                                ) {
+                                    Text("Cash Out", color = Color(0xFF007AFF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                Button(
+                                    onClick = { onSponsorAdClicked() },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF)),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                                ) {
+                                    Text("Sponsor Buddy", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Apple Search Bar Input
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(36.dp)
+                                    .background(Color(0xFF767680).copy(alpha = 0.12f), shape = RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "Search",
+                                    tint = Color(0xFF3C3C43).copy(alpha = 0.6f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (searchQuery.isEmpty()) {
+                                        Text(
+                                            text = "Search by classmate name...",
+                                            color = Color(0xFF3C3C43).copy(alpha = 0.6f),
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                    androidx.compose.foundation.text.BasicTextField(
+                                        value = searchQuery,
+                                        onValueChange = { onSearchChanged(it) },
+                                        textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black, fontSize = 14.sp),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = "Search",
+                                color = Color(0xFF007AFF),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .clickable { onSearchClicked() }
+                                    .padding(vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+
+                // IOS CLASSMATES LIST VIEW
+                item {
+                    Text(
+                        text = "REGIONAL CLASS DIRECTORY",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF8E8E93),
+                        modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 6.dp)
+                    )
+                }
+
+                if (profiles.isEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .padding(24.dp)
+                                    .fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "No iOS classmate entries found",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.Black
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Standard Apple Grouped Table Cell list representation
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+                        ) {
+                            Column {
+                                profiles.forEachIndexed { index, profile ->
+                                    val loggedIn = currentUser != null
+                                    val avatarClr = niceAvatarColors[profile.avatarColorSeed % niceAvatarColors.size]
+                                    
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { onProfileSelected(profile) }
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // iOS style Squircle Avatar
+                                        Box(
+                                            modifier = Modifier
+                                                .size(42.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(avatarClr.copy(alpha = if (loggedIn) 1f else 0.4f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (loggedIn) {
+                                                Text(
+                                                    text = profile.name.take(1).uppercase(),
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 18.sp
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = Icons.Default.Lock,
+                                                    contentDescription = "Secured",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = if (loggedIn) profile.name else obfuscateSequence(profile.name),
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.Black
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "${profile.hometown} • Class Status: ${profile.statusText}",
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF8E8E93)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(10.dp))
+
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            if (!loggedIn) {
+                                                Text(
+                                                    text = "Unlock",
+                                                    fontSize = 11.sp,
+                                                    color = Color(0xFF007AFF),
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                                Spacer(modifier = Modifier.width(2.dp))
+                                            }
+                                            Icon(
+                                                imageVector = Icons.Default.KeyboardArrowRight,
+                                                contentDescription = "Details",
+                                                tint = Color(0xFFC7C7CC),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+
+                                    if (index < profiles.lastIndex) {
+                                        Divider(
+                                            modifier = Modifier.padding(start = 70.dp),
+                                            color = Color(0xFFC6C6C8).copy(alpha = 0.4f),
+                                            thickness = 0.5.dp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Apple Memory Board Section
+                item {
+                    Text(
+                        text = "IOS NOSTALGIA BULLETIN BOARD",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF8E8E93),
+                        modifier = Modifier.padding(start = 20.dp, top = 22.dp, bottom = 6.dp)
+                    )
+                }
+
+                if (memories.isEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Text(
+                                text = "Be the first to share old class gossip!",
+                                fontSize = 12.sp,
+                                color = Color(0xFF8E8E93),
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
+                } else {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            memories.forEach { memory ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(14.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(24.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFF007AFF).copy(alpha = 0.1f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Face,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFF007AFF),
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                            }
+                                            Text(
+                                                text = memory.authorName,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                color = Color.Black
+                                            )
+                                            Text(
+                                                text = "•",
+                                                color = Color(0xFF8E8E93),
+                                                fontSize = 12.sp
+                                            )
+                                            Text(
+                                                text = memory.hometownLocation,
+                                                color = Color(0xFF8E8E93),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                        Text(
+                                            text = "\"${memory.memoryText}\"",
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF1C1C1E),
+                                            lineHeight = 16.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Call to action button for memories
+                if (currentUser != null) {
+                    item {
+                        Button(
+                            onClick = { onPostMemoryClicked() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF))
+                        ) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Add Old Memory Note", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            // iOS Bottom Home Bar Indicator bezel space
+            Spacer(modifier = Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 124.dp, height = 5.dp)
+                        .clip(RoundedCornerShape(2.5.dp))
+                        .background(Color.Black.copy(alpha = 0.5f))
+                )
+            }
+        }
+    }
+}
+
