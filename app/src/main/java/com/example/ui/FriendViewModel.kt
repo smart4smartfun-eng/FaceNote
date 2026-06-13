@@ -130,21 +130,34 @@ class FriendViewModel(private val repository: FriendRepository) : ViewModel() {
         _showRegisterModal.value = show
     }
 
-    fun registerUser(name: String, email: String, hometown: String, searchIntent: String) {
+    fun registerUser(
+        name: String,
+        email: String,
+        hometown: String,
+        searchIntent: String,
+        googleMail: String? = null,
+        phoneNumber: String? = null,
+        faceVerified: Boolean = false,
+        facePhotoUri: String? = null
+    ) {
         viewModelScope.launch {
-            val bonusRate = 5.00
+            val bonusRate = if (faceVerified) 10.00 else 5.00
             val startingBalance = _totalEarnings.value + bonusRate
             val user = CurrentUser(
                 name = name,
                 email = email,
                 hometown = hometown,
                 searchIntent = searchIntent,
-                earningsBalance = startingBalance
+                earningsBalance = startingBalance,
+                googleMail = googleMail,
+                phoneNumber = phoneNumber,
+                faceVerified = faceVerified,
+                facePhotoUri = facePhotoUri
             )
             repository.saveCurrentUser(user)
             _showRegisterModal.value = false
             _totalEarnings.value = startingBalance
-            addEarningBonus(bonusRate, "Registered account bonus", logAction = true)
+            addEarningBonus(bonusRate, if (faceVerified) "Registered + Face Verification Reward" else "Registered account bonus", logAction = true)
         }
     }
 

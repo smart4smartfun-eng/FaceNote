@@ -31,5 +31,9 @@ data class CurrentUser(
     val email: String,
     val hometown: String,
     val searchIntent: String,
-    val earningsBalance: Double = 3.50
+    val earningsBalance: Double = 3.50,
+    val googleMail: String? = null,
+    val phoneNumber: String? = null,
+    val faceVerified: Boolean = false,
+    val facePhotoUri: String? = null
 )

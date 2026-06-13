@@ -92,15 +92,40 @@ fun FaceNoteApp(viewModel: FriendViewModel) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(
-                                    text = currentUser?.name ?: "",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 14.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.widthIn(max = 120.dp)
-                                )
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        if (currentUser?.faceVerified == true) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(Color(0xFF10B981), shape = RoundedCornerShape(10.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "👤 Verified",
+                                                    color = Color.White,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                        Text(
+                                            text = currentUser?.name ?: "",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.widthIn(max = 120.dp)
+                                        )
+                                    }
+                                    if (currentUser?.phoneNumber != null) {
+                                        Text(
+                                            text = currentUser?.phoneNumber ?: "",
+                                            color = FaceNoteGray,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
                                 TextButton(
                                     onClick = {
                                         viewModel.logout()
@@ -863,9 +888,10 @@ fun FaceNoteApp(viewModel: FriendViewModel) {
     if (showRegisterModal) {
         RegisterModelDialog(
             onDismiss = { viewModel.setShowRegisterModal(false) },
-            onSubmit = { name, email, hometown, searchIntent ->
-                viewModel.registerUser(name, email, hometown, searchIntent)
-                Toast.makeText(context, "Welcome, $name! Profiles Unlocked!", Toast.LENGTH_LONG).show()
+            onSubmit = { name, email, hometown, searchIntent, googleMail, phoneNumber, faceVerified, facePhotoUri ->
+                viewModel.registerUser(name, email, hometown, searchIntent, googleMail, phoneNumber, faceVerified, facePhotoUri)
+                val welcomeMsg = if (faceVerified) "Welcome, $name! Premium Verified with $5.00 Face ID Bonus!" else "Welcome, $name! Profiles Unlocked!"
+                Toast.makeText(context, welcomeMsg, Toast.LENGTH_LONG).show()
             }
         )
     }
@@ -1121,14 +1147,46 @@ fun MemoryCard(memory: HometownMemory) {
 @Composable
 fun RegisterModelDialog(
     onDismiss: () -> Unit,
-    onSubmit: (name: String, email: String, hometown: String, searchIntent: String) -> Unit
+    onSubmit: (
+        name: String,
+        email: String,
+        hometown: String,
+        searchIntent: String,
+        googleMail: String?,
+        phoneNumber: String?,
+        faceVerified: Boolean,
+        facePhotoUri: String?
+    ) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var hometown by remember { mutableStateOf("") }
     var searchIntent by remember { mutableStateOf("") }
 
+    // New requested registration features:
+    var googleMail by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
+
+    // Face verification states:
+    var faceVerified by remember { mutableStateOf(false) }
+    var scanProgress by remember { mutableFloatStateOf(0f) }
+    var faceScanState by remember { mutableStateOf("idle") } // "idle", "scanning", "success"
+
+    // Current step index: 0 = Profile, 1 = Accounts, 2 = Face ID
+    var activeStep by remember { mutableIntStateOf(0) }
     var errors by remember { mutableStateOf(false) }
+
+    LaunchedEffect(faceScanState) {
+        if (faceScanState == "scanning") {
+            scanProgress = 0f
+            while (scanProgress < 1f) {
+                kotlinx.coroutines.delay(100)
+                scanProgress += 0.05f
+            }
+            faceScanState = "success"
+            faceVerified = true
+        }
+    }
 
     Dialog(onDismissRequest = { onDismiss() }) {
         Card(
@@ -1150,8 +1208,8 @@ fun RegisterModelDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Reveal Your Connections",
-                        fontSize = 20.sp,
+                        text = "Verify Your Identity",
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = FaceNoteSlate
                     )
@@ -1165,91 +1223,338 @@ fun RegisterModelDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Create a quick free account to view full profile details and send messages.",
-                    fontSize = 13.sp,
+                    text = "Verify your accounts and register complete biometrics details to access secure reconnection feeds.",
+                    fontSize = 12.sp,
                     color = FaceNoteGray,
-                    lineHeight = 18.sp
+                    lineHeight = 16.sp
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Fields
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Your Full Name") },
-                    placeholder = { Text("e.g. John Doe") },
+                // Steps indicators
+                val steps = listOf("👤 Profile", "📱 Accounts", "📸 Face ID")
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("auth_name_field"),
-                    singleLine = true,
-                    isError = errors && name.isBlank()
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Your Email Address") },
-                    placeholder = { Text("e.g. john@example.com") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("auth_email_field"),
-                    singleLine = true,
-                    isError = errors && email.isBlank()
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-
-                OutlinedTextField(
-                    value = hometown,
-                    onValueChange = { hometown = it },
-                    label = { Text("Class Year / Neighborhood / Hometown") },
-                    placeholder = { Text("e.g. Oakridge High 2012") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("auth_hometown_field"),
-                    singleLine = true,
-                    isError = errors && hometown.isBlank()
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-
-                OutlinedTextField(
-                    value = searchIntent,
-                    onValueChange = { searchIntent = it },
-                    label = { Text("Who are you looking for?") },
-                    placeholder = { Text("e.g. Searching for the 2012 track squad") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
-                )
-
-                if (errors) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Please fill in all required fields (Name, Email, School/Hometown).",
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                        .background(Color(0xFFF1F5F9), shape = RoundedCornerShape(10.dp))
+                        .padding(2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    steps.forEachIndexed { idx, stepName ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (activeStep == idx) FaceNoteBlue else Color.Transparent)
+                                .clickable {
+                                    activeStep = idx
+                                }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stepName,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (activeStep == idx) Color.White else FaceNoteGray
+                            )
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = {
-                        if (name.isBlank() || email.isBlank() || hometown.isBlank()) {
-                            errors = true
-                        } else {
-                            onSubmit(name, email, hometown, searchIntent)
+                // Step content
+                when (activeStep) {
+                    0 -> {
+                        // Profile Details
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedTextField(
+                                value = name,
+                                onValueChange = { name = it },
+                                label = { Text("Your Full Name") },
+                                placeholder = { Text("e.g. John Doe") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("auth_name_field"),
+                                singleLine = true,
+                                isError = errors && name.isBlank()
+                            )
+
+                            OutlinedTextField(
+                                value = email,
+                                onValueChange = { email = it },
+                                label = { Text("Personal Email Address") },
+                                placeholder = { Text("e.g. john@example.com") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("auth_email_field"),
+                                singleLine = true,
+                                isError = errors && email.isBlank()
+                            )
+
+                            OutlinedTextField(
+                                value = hometown,
+                                onValueChange = { hometown = it },
+                                label = { Text("School / Class / Hometown") },
+                                placeholder = { Text("e.g. Oakridge High 2012") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("auth_hometown_field"),
+                                singleLine = true,
+                                isError = errors && hometown.isBlank()
+                            )
+
+                            OutlinedTextField(
+                                value = searchIntent,
+                                onValueChange = { searchIntent = it },
+                                label = { Text("Who are you looking for?") },
+                                placeholder = { Text("e.g. High school classmates...") },
+                                modifier = Modifier.fillMaxWidth(),
+                                maxLines = 2
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            if (errors && (name.isBlank() || email.isBlank() || hometown.isBlank())) {
+                                Text(
+                                    text = "Please write your Name, Email, and School/Hometown.",
+                                    color = Color(0xFFFF3B30),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (name.isBlank() || email.isBlank() || hometown.isBlank()) {
+                                        errors = true
+                                    } else {
+                                        errors = false
+                                        activeStep = 1
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(44.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = FaceNoteBlue),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Continue to Accounts", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                            }
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .testTag("auth_submit_btn"),
-                    colors = ButtonDefaults.buttonColors(containerColor = FaceNoteBlue),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Unlock Connections", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                    }
+                    1 -> {
+                        // Contact Accounts
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedTextField(
+                                value = googleMail,
+                                onValueChange = { googleMail = it },
+                                label = { Text("Google Mail (Gmail) Account") },
+                                placeholder = { Text("e.g. john.doe@gmail.com") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                isError = errors && googleMail.isBlank()
+                            )
+
+                            OutlinedTextField(
+                                value = phoneNumber,
+                                onValueChange = { phoneNumber = it },
+                                label = { Text("Mobile Phone Number") },
+                                placeholder = { Text("e.g. +1 (555) 019-2834") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                isError = errors && phoneNumber.isBlank()
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            if (errors && (googleMail.isBlank() || phoneNumber.isBlank())) {
+                                Text(
+                                    text = "Google Mail and Phone Number are required.",
+                                    color = Color(0xFFFF3B30),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { activeStep = 0 },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Back", color = FaceNoteBlue)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        if (googleMail.isBlank() || phoneNumber.isBlank()) {
+                                            errors = true
+                                        } else {
+                                            errors = false
+                                            activeStep = 2
+                                        }
+                                    },
+                                    modifier = Modifier.weight(2.5f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = FaceNoteBlue),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Continue to Face ID", fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+                    }
+                    2 -> {
+                        // Face ID Verification Scan
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(140.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        when (faceScanState) {
+                                            "success" -> Color(0xFF34C759).copy(alpha = 0.12f)
+                                            "scanning" -> FaceNoteBlue.copy(alpha = 0.12f)
+                                            else -> Color(0xFFE2E8F0)
+                                        }
+                                    )
+                                    .border(
+                                        width = 3.dp,
+                                        color = when (faceScanState) {
+                                            "success" -> Color(0xFF34C759)
+                                            "scanning" -> FaceNoteBlue
+                                            else -> Color(0xFF94A3B8)
+                                        },
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (faceScanState == "scanning") {
+                                    androidx.compose.material3.CircularProgressIndicator(
+                                        progress = { scanProgress },
+                                        color = FaceNoteBlue,
+                                        strokeWidth = 4.dp,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(12.dp)
+                                    )
+                                }
+
+                                Icon(
+                                    imageVector = if (faceScanState == "success") Icons.Default.Check else Icons.Default.Face,
+                                    contentDescription = "Face Recognition Biometrics",
+                                    tint = when (faceScanState) {
+                                        "success" -> Color(0xFF34C759)
+                                        "scanning" -> FaceNoteBlue
+                                        else -> Color(0xFF64748B)
+                                    },
+                                    modifier = Modifier.size(64.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Text(
+                                text = when (faceScanState) {
+                                    "success" -> "Face Bio-Sign Verified!"
+                                    "scanning" -> "Analyzing nodes... Please blink"
+                                    else -> "Interactive 3D Face Scan"
+                                },
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when (faceScanState) {
+                                    "success" -> Color(0xFF34C759)
+                                    "scanning" -> FaceNoteBlue
+                                    else -> Color.Black
+                                }
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = when (faceScanState) {
+                                    "success" -> "Premium badge activated + $5.00 Coin Bonus added!"
+                                    "scanning" -> "Keep your phone steady and center your view."
+                                    else -> "Secures classmates from fake profiles. Verification grants access."
+                                },
+                                fontSize = 11.sp,
+                                color = FaceNoteGray,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+
+                            Spacer(modifier = Modifier.height(18.dp))
+
+                            if (faceScanState == "idle") {
+                                Button(
+                                    onClick = { faceScanState = "scanning" },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(40.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Begin Biometric Verification", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(14.dp))
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { activeStep = 1 },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Back", color = FaceNoteBlue)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        if (name.isBlank() || email.isBlank() || hometown.isBlank()) {
+                                            activeStep = 0
+                                            errors = true
+                                        } else if (googleMail.isBlank() || phoneNumber.isBlank()) {
+                                            activeStep = 1
+                                            errors = true
+                                        } else {
+                                            onSubmit(
+                                                name,
+                                                email,
+                                                hometown,
+                                                searchIntent,
+                                                googleMail,
+                                                phoneNumber,
+                                                faceVerified,
+                                                if (faceVerified) "android_camera_captured_face.jpg" else null
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.weight(2.5f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = if (faceVerified) Color(0xFF34C759) else FaceNoteBlue),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text(
+                                        text = if (faceVerified) "Register Now (Premium ✅)" else "Register Without Face ID",
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -3096,8 +3401,16 @@ fun AppleDeviceSimulator(
                 if (currentUser != null) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
+                        if (currentUser.faceVerified) {
+                            Text(
+                                text = "✅ Verified",
+                                color = Color(0xFF34C759),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                         Text(
                             text = currentUser.name.substringBefore(" "),
                             color = Color(0xFF007AFF),
