@@ -2491,19 +2491,39 @@ fun FaceNoteWebPortal(
                                         verticalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text(
-                                                    text = "Face",
-                                                    color = FaceNoteBlue,
-                                                    fontWeight = FontWeight.Black,
-                                                    fontSize = 20.sp
-                                                )
-                                                Text(
-                                                    text = "Note Portal",
-                                                    color = FaceNoteSlate,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 20.sp
-                                                )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(Brush.linearGradient(listOf(FaceNoteBlue, FaceNoteBlueAccent))),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "FN",
+                                                        color = Color.White,
+                                                        fontSize = 15.sp,
+                                                        fontWeight = FontWeight.Black,
+                                                        letterSpacing = (-0.5).sp
+                                                    )
+                                                }
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        text = "Face",
+                                                        color = FaceNoteBlue,
+                                                        fontWeight = FontWeight.Black,
+                                                        fontSize = 20.sp
+                                                    )
+                                                    Text(
+                                                        text = "Note Portal",
+                                                        color = FaceNoteSlate,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 20.sp
+                                                    )
+                                                }
                                             }
 
                                             HorizontalDivider(color = Color(0xFFE2E8F0))
@@ -3011,8 +3031,14 @@ fun FaceNoteWebPortal(
                                         ) {
                                             Column(modifier = Modifier.padding(16.dp)) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Box(modifier = Modifier.size(16.dp).clip(CircleShape).background(FaceNoteBlue), contentAlignment = Alignment.Center) {
-                                                        Text("F", fontSize = 9.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(18.dp)
+                                                            .clip(RoundedCornerShape(4.dp))
+                                                            .background(Brush.linearGradient(listOf(FaceNoteBlue, FaceNoteBlueAccent))),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text("FN", fontSize = 9.sp, color = Color.White, fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
                                                     }
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Column {
@@ -3054,13 +3080,34 @@ fun FaceNoteWebPortal(
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .height(110.dp)
+                                                        .height(115.dp)
                                                         .background(Brush.horizontalGradient(listOf(FaceNoteBlue, Color(0xFF1E3A8A)))),
                                                     contentAlignment = Alignment.Center
                                                 ) {
-                                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                        Text("FaceNote Connect", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White)
-                                                        Text("Reuniting School Alumnis Worldwide", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(34.dp)
+                                                                .clip(RoundedCornerShape(8.dp))
+                                                                .background(Color.White.copy(alpha = 0.15f))
+                                                                .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Text(
+                                                                text = "FN",
+                                                                color = Color.White,
+                                                                fontSize = 16.sp,
+                                                                fontWeight = FontWeight.Black,
+                                                                letterSpacing = (-0.5).sp
+                                                            )
+                                                        }
+                                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                            Text("FaceNote Connect", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                                            Text("Reuniting School Alumni Worldwide", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                                                        }
                                                     }
                                                 }
                                                 
@@ -3147,7 +3194,8 @@ fun generateLiveHtml(
     <!-- Header bar -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center text-white font-black text-sm tracking-tighter">FN</div>
                 <span class="text-blue-600 text-2xl font-black tracking-tight">Face<span class="text-slate-800 font-bold">Note</span></span>
                 <span class="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-0.5 rounded-full">WEB SYNCED</span>
             </div>
@@ -3378,17 +3426,25 @@ fun AppleDeviceSimulator(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Left Title or Logo
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(24.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0xFF007AFF)),
+                            .size(26.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(Brush.linearGradient(listOf(FaceNoteBlue, FaceNoteBlueAccent))),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("f", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "FN",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = (-0.5).sp
+                        )
                     }
-                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "FaceNote",
                         fontSize = 17.sp,
