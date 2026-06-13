@@ -1,0 +1,6 @@
+{
+  "name": "FaceNote",
+  "description": "Find your old lost friends, high school classmates, and neighbors on FaceNote. Reconnect and share hometown memories.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
